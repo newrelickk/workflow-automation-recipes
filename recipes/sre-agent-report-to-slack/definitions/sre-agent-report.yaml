@@ -1,0 +1,38 @@
+name: sre-agent-report-to-slack
+description: ''
+workflowInputs:
+  account_id:
+    type: Int
+    validations: []
+    required: false
+  IssueId:
+    type: String
+    validations: []
+    required: false
+  entityGuid:
+    type: String
+    validations: []
+    required: false
+steps:
+  - name: newrelic_agent_run
+    type: action
+    action: newrelic.agent.run
+    version: 1
+    inputs:
+      prompt: |-
+        アラートをキャッチしました。原因を調査して分析したレポートを作成してください
+        account_id : ${{.workflowInputs.account_id}}
+        IssueId : ${{.workflowInputs.IssueId}}
+        entityGuid : ${{.workflowInputs.entityGuid}}
+      agentId: sre_agent
+  - name: slack_chat_postMessage_4
+    type: action
+    action: slack.chat.postMessage
+    version: 1
+    inputs:
+      token: ${{ :secrets:slack:sre_slack_token }}
+      channel: perfect-cat-streaming
+      text: >-
+        ${{ .steps.newrelic_agent_run.outputs.response.finalAnswer | fromjson
+        | [.card.body[] | select(.type == "Text") | .value] | join("\n\n") }}
+    next: end
